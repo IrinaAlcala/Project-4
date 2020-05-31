@@ -10,9 +10,7 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-userSchema.methods.comparePassword = function(tryPassword, cb) {
-  bcrypt.compare(tryPassword, this.password, cb);
-};
+
 userSchema.set('toJSON', {
   transform: function(doc, ret) {
     // remove the password property when serializing doc to JSON
@@ -20,7 +18,9 @@ userSchema.set('toJSON', {
     return ret;
   }
 });
+
 userSchema.pre('save', function(next) {
+  // 'this' will be set to the current document
   const user = this;
   if (!user.isModified('password')) return next();
   // password has been changed - salt and hash it
@@ -31,4 +31,13 @@ userSchema.pre('save', function(next) {
     next();
   });
 });
+
+userSchema.methods.comparePassword = function(tryPassword, cb) {
+  // 'this' represents the document that you called comparePassword on
+  bcrypt.compare(tryPassword, this.password, function(err, isMatch) {
+    if (err) return cb(err);
+    cb(null, isMatch);
+  });
+};
+
 module.exports = mongoose.model('User', userSchema);
